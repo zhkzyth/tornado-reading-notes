@@ -1,11 +1,10 @@
-tornado-reading-notes
-=====================
+# tornado-reading-notes
 
 a reading note about tornado source code~
 
 ## serveral key points
 
-- stack_context
+- stack_context  
   As for me, it is so difficult to understand why tornado use stack_context.
   Here is some hints i found some where:
   - the author of motor lib talked about [it][1] in the tornado mailing list.
@@ -13,7 +12,7 @@ a reading note about tornado source code~
 
   I still need some time to consume this concept.May i should read the motor code?
 
-- gen.coroutine
+- gen.coroutine  
   In tornado world, not eveything is running in a socket.So how can we play aysnc in everywhere?Well,the answer is we can't at all.
 
   But tornado use some tricks,the [concurrent][3] lib in python.Especially,tornado use thread to handle blocking operations.And use the concept of 'futures' to handle job state.
