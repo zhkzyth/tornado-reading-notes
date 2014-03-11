@@ -49,6 +49,7 @@ class RootHandler(RequestHandler):
         pass
 
 def handle_sigchld(sig, frame):
+    print "being killed by sig %s" % sig
     IOLoop.instance().add_callback(IOLoop.instance().stop)
 
 def main():
@@ -61,6 +62,7 @@ def main():
 def run():
     app = Application([("/", RootHandler)])
     port = random.randrange(options.min_port, options.max_port)
+    port = 5000
     app.listen(port, address='127.0.0.1')
     signal.signal(signal.SIGCHLD, handle_sigchld)
     args = ["ab"]
@@ -71,6 +73,7 @@ def run():
     if options.quiet:
         # just stops the progress messages printed to stderr
         args.append("-q")
+    port = 5000
     args.append("http://127.0.0.1:%d/" % port)
     subprocess.Popen(args)
     IOLoop.instance().start()
