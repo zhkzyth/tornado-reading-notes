@@ -206,7 +206,9 @@ class AsyncTestCase(unittest.TestCase):
 
     def run(self, result=None):
         with ExceptionStackContext(self._handle_exception):
-            super(AsyncTestCase, self).run(result)  # error是怎么逃脱的？
+            # error是怎么逃脱的？
+            # 看看上面的_handle_exception根本没继续抛出错误，直接隐藏起来，设置成当前case的状态了
+            super(AsyncTestCase, self).run(result)
         # As a last resort, if an exception escaped super.run() and wasn't
         # re-raised in tearDown, raise it here.  This will cause the
         # unittest run to fail messily, but that's better than silently

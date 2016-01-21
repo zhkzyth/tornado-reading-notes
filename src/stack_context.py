@@ -79,9 +79,12 @@ class StackContextInconsistentError(Exception):
     pass
 
 
+# 对比完state变量的操作，大概能猜到self.contexts的结构，
+# 大概就是不断累积当前context对象到一个(tuple(context1,context2,context3,context_current),context_current)这样的结构中。
+# 其中最新的context就越往后面塞
 class _State(threading.local):
     def __init__(self):
-        self.contexts = (tuple(), None)
+        self.contexts = (tuple(), None) # TODO 这里的tuple、None两个字段具体填啥内容的
 _state = _State()
 
 

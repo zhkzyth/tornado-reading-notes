@@ -94,7 +94,7 @@ def import_object(name):
 # unicode_literals" have other problems (see PEP 414).  u() can be applied
 # to ascii strings that include \u escapes (but they must not contain
 # literal non-ascii characters).
-if type('') is not type(b''):
+if type('') is not type(b''): # 这个是支持py3.2的
     def u(s):
         return s
     bytes_type = bytes

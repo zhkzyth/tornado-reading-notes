@@ -562,7 +562,7 @@ class PollIOLoop(IOLoop):
         self._blocking_signal_threshold = seconds
         if seconds is not None:
             signal.signal(signal.SIGALRM,
-                          action if action is not None else signal.SIG_DFL) # 采用默认的系统信号处理方法
+                          action if action is not None else signal.SIG_DFL) # 采用默认的系统信号处理方法，对于SIGALRM来说，默认是结束掉当前进程
 
     def start(self):
         if not logging.getLogger().handlers:
@@ -583,8 +583,10 @@ class PollIOLoop(IOLoop):
 
         old_current = getattr(IOLoop._current, "instance", None)
         IOLoop._current.instance = self
-        self._thread_ident = thread.get_ident()
+        self._thread_ident = thread.get_ident() # 获取当前启动线程的id
         self._running = True
+
+        # 为什么要在这里设置wakeup_fd这个东东??
 
         # signal.set_wakeup_fd closes a race condition in event loops:
         # a signal may arrive at the beginning of select/poll/etc
@@ -608,7 +610,11 @@ class PollIOLoop(IOLoop):
             # the python process on windows.
             try:
                 # a '\0' is write to the fd when a signal is received.
-                old_wakeup_fd = signal.set_wakeup_fd(self._waker.write_fileno())
+                old_wakeup_fd = signal.set_wakeup_fd(self._waker.write_fileno())   # 是想在epoll这样的事件轮询里面，捕获到signal进行处理
+
+                # TODO 如何响应信号 ??
+                # epoll这样的事件机制下，信号是如何被处理的？
+
                 if old_wakeup_fd != -1:
                     # Already set, restore previous value.  This is a little racy,
                     # but there's no clean get_wakeup_fd and in real use the
@@ -626,13 +632,13 @@ class PollIOLoop(IOLoop):
             with self._callback_lock:
                 callbacks = self._callbacks
                 self._callbacks = []
-            # 先把callbacks跑完，这里的其实都是已经拿到结果的了，而且根本没用到unix的多路复用机制啊...
             for callback in callbacks:
                 self._run_callback(callback)
             # Closures may be holding on to a lot of memory, so allow
             # them to be freed before we go into our poll wait.
             callbacks = callback = None
 
+            # 保持_timeout堆尽量小，减掉没用的timeout事件
             if self._timeouts:
                 now = self.time()
                 while self._timeouts:
@@ -660,7 +666,7 @@ class PollIOLoop(IOLoop):
             if self._callbacks:
                 # If any callbacks or timeouts called add_callback,
                 # we don't want to wait in poll() before we run them.
-                poll_timeout = 0.0 #??
+                poll_timeout = 0.0
 
             if not self._running:
                 break
@@ -683,6 +689,7 @@ class PollIOLoop(IOLoop):
                 # EINTR means "This call did not succeed because it was interrupted. However, if you try again, it will probably work."
                 # In other words, EINTR is not a fatal error -- it just means you should retry whatever you were attempting.
 
+                # EINTR的错误有很多种情况，比如说，如果在信号来到的情况下，而线程这个时候在跑的话，就会发生OSError，而且errno就是是EINTR，这种情况我们是允许事件轮训再来一次的
                 if (getattr(e, 'errno', None) == errno.EINTR or
                     (isinstance(getattr(e, 'args', None), tuple) and
                      len(e.args) == 2 and e.args[0] == errno.EINTR)):
@@ -712,11 +719,11 @@ class PollIOLoop(IOLoop):
                 except Exception:
                     self.handle_callback_exception(self._handlers.get(fd))
 
-        # reset the stopped flag so another start/stop pair can be issued
-        # 把一些状态恢复到运行初期，为啥？
+        # reset the stopped flag so another start/stop pair can be issued 什么是another start/stop pair?
+        # 把一些状态恢复到运行初期
         self._stopped = False
         if self._blocking_signal_threshold is not None:
-            signal.setitimer(signal.ITIMER_REAL, 0, 0)
+            signal.setitimer(signal.ITIMER_REAL, 0, 0) # 去掉这个ITIMER_REAL信号
         IOLoop._current.instance = old_current
         if old_wakeup_fd is not None:
             signal.set_wakeup_fd(old_wakeup_fd)
