@@ -113,6 +113,7 @@ class ReturnValueIgnoredError(Exception):
     pass
 
 
+# 旧版本的装饰器，可以忽略掉这个函数
 def engine(func):
     """Callback-oriented decorator for asynchronous generators.
 
@@ -142,6 +143,7 @@ def engine(func):
             if runner is not None:
                 return runner.handle_exception(typ, value, tb)
             return False
+
         with ExceptionStackContext(handle_exception) as deactivate:
             try:
                 result = func(*args, **kwargs)
@@ -172,7 +174,6 @@ def engine(func):
 # 一般yield背后的，其实都是一个future之类的对象
 
 # coroutine包装后的函数由谁来负责调用呢?
-# TODO 查看下iostream的调用
 def coroutine(func):
     """Decorator for asynchronous generators.
 
@@ -216,24 +217,29 @@ def coroutine(func):
                 typ, value, tb = sys.exc_info()
             future.set_exc_info((typ, value, tb))
             return True
+
         with ExceptionStackContext(handle_exception) as deactivate:
             try:
-                result = func(*args, **kwargs)  # result是func调用返回的一个结果，有可能是一个iterator?
+                result = func(*args, **kwargs)  # result是func调用返回的一个结果，有可能是一个iterator，比如我们的get、post方法里面塞几个yield的调用
             except (Return, StopIteration) as e:
-                result = getattr(e, 'value', None) #TODO 这里也是
+                result = getattr(e, 'value', None)
             except Exception:
                 deactivate()
                 future.set_exc_info(sys.exc_info())
                 return future
             else:
                 if isinstance(result, types.GeneratorType):
+
                     def final_callback(value):
                         deactivate()
                         future.set_result(value)
+
                     # 这里的result很可能是一个iterator，看看头部的调用例子
                     runner = Runner(result, final_callback) # 关键点
                     runner.run()
+
                     return future
+
             deactivate()
             future.set_result(result)
         return future
@@ -383,10 +389,13 @@ class Task(YieldPoint):
         self.func = func
 
     def start(self, runner):
+
         self.runner = runner
         self.key = object()
+
         runner.register_callback(self.key)
         self.kwargs["callback"] = runner.result_callback(self.key)
+
         self.func(*self.args, **self.kwargs)
 
     def is_ready(self):
@@ -478,7 +487,8 @@ _null_yield_point = _NullYieldPoint()
 
 # 而事件循环，其实就是在一个线程里面，不断的轮训callbacks和可读写的sockets对应的callback，然后一个接一个的调用
 
-# 至于future，是用来包装异步调用函数的上层对像，它的内部实现其实是依赖python在3.2提供的concurrent库，具体是future和threadingpoll。每个future的状态监测，由future库本身来完成（其实就是线程自己监测状态，给上层提供done之类的状态接口）。
+# 至于future，是用来包装异步调用函数的上层对像，它的内部实现其实是依赖python在3.2提供的concurrent库，具体是future和threadingpoll。
+# 每个future的状态监测，由future库本身来完成（其实就是线程自己监测状态，给上层提供done之类的状态接口）。
 # 然后，在future本身提供的done_callback接口里面，把result和应用层面的callback注册到事件循环里面，等到执行。
 class Runner(object):
     """Internal implementation of `tornado.gen.engine`.
@@ -526,9 +536,13 @@ class Runner(object):
         """
         if self.running or self.finished:
             return
+
+        # TODO 了解下yield point
         try:
             self.running = True
+
             while True:
+
                 if self.exc_info is None:
                     try:
                         if not self.yield_point.is_ready():  # 不断的轮询yield是否已经准备好数据了
@@ -537,6 +551,7 @@ class Runner(object):
                         self.yield_point = None
                     except Exception:
                         self.exc_info = sys.exc_info()
+
                 try:
                     if self.exc_info is not None:
                         self.had_exception = True
@@ -565,10 +580,12 @@ class Runner(object):
                     self.finished = True
                     self.yield_point = _null_yield_point
                     raise
+
                 if isinstance(yielded, (list, dict)):
                     yielded = Multi(yielded)
                 elif isinstance(yielded, Future):
                     yielded = YieldFuture(yielded) # 关键点！
+
                 if isinstance(yielded, YieldPoint):
                     self.yield_point = yielded
                     try:
@@ -578,6 +595,7 @@ class Runner(object):
                 else:
                     self.exc_info = (BadYieldError(
                         "yielded unknown object %r" % (yielded,)),)
+
         finally:
             self.running = False
 

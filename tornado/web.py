@@ -1213,6 +1213,11 @@ class RequestHandler(object):
 
             # Future 的实现重点看看
             elif isinstance(result, Future):
+
+                # 我用了一种特例跑过了这里的逻辑，比如我们用一个gen.courotine来包装一个get函数，但是这个get却没有任何yield请求
+                # 这样导致的结果是，整个get跑完，断开客户端的连接，最后默认返回None，就去到现在这个地方了
+
+                # 如果不是特例呢
                 if result.done():
                     if result.result() is not None:
                         raise ValueError('Expected None, got %r' % result.result())
@@ -1221,6 +1226,9 @@ class RequestHandler(object):
                     # Delayed import of IOLoop because it's not available
                     # on app engine
                     from tornado.ioloop import IOLoop
+
+                    # web层这里调完gen包装的函数，就把返回的future对象扔到ioloop里面，
+                    # 等到进一步处理
                     IOLoop.current().add_future(
                         result, functools.partial(self._when_complete,
                                                   callback=callback))
@@ -1229,12 +1237,19 @@ class RequestHandler(object):
         except Exception as e:
             self._handle_request_exception(e)
 
+    # 匹配完url和对应的方法后，就要执行这个方法了
+    # 最后执行者，web层面
     def _execute_method(self):
+
+        # 检测_finished状态，就证明可以在self.prepare方法里面断掉client端的请求
         if not self._finished:
             method = getattr(self, self.request.method.lower())
+
+            # 重点关注下method调用完，如果是异步的话，是返回一个Future类型，因为装饰器用到的tornado.gen.coroutine会把get/post这样的方法包装好，返回一个future对象
             self._when_complete(method(*self.path_args, **self.path_kwargs),
                                 self._execute_finish)
 
+    # 用来做清洁工作的
     def _execute_finish(self):
         if self._auto_finish and not self._finished:
             self.finish()

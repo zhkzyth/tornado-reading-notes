@@ -443,8 +443,10 @@ class IOLoop(Configurable):
         """
         raise NotImplementedError()
 
-    # 感觉add_future这类函数，很多时候其实只是把阻塞的操作放到其他线程里面去跑
+    # 感觉 add_future 这类函数，很多时候其实只是把阻塞的操作放到其他线程里面去跑
     # 没看到里面多路复用的那种检测机制???
+
+    # 现在看来，多路复用的机制不在这里啦，这里只是把future加入到事件循环里面，等到完成了再拿出来用
     def add_future(self, future, callback):
         """Schedules a callback on the ``IOLoop`` when the given
         `.Future` is finished.
@@ -457,7 +459,6 @@ class IOLoop(Configurable):
         # future的add_done_callback可以在future状态为done的时候，把先前的callback注册到
         # IO LOOP事件循环里面，等到下次ioloop调用
 
-        # TODO future的状态变化过程?
         future.add_done_callback(
             lambda future: self.add_callback(callback, future))
         # 但这样的话，不就跟大的ioloop事件循环没有关系了么
@@ -575,11 +576,9 @@ class PollIOLoop(IOLoop):
             # far without anything.
             logging.basicConfig()
 
-
         if self._stopped:
             self._stopped = False
             return
-
 
         old_current = getattr(IOLoop._current, "instance", None)
         IOLoop._current.instance = self

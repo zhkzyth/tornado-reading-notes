@@ -279,8 +279,6 @@ class BlockingResolver(ExecutorResolver):
         super(BlockingResolver, self).initialize(io_loop=io_loop)
 
 
-# TODO 耗时操作还是放在多线程里面去做的感觉
-# 那yield的意义何在呢?
 class ThreadedResolver(ExecutorResolver):
     """Multithreaded non-blocking `Resolver` implementation.
 

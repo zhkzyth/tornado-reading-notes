@@ -264,4 +264,5 @@ def chain_future(a, b):
             b.set_exception(a.exception())
         else:
             b.set_result(a.result())
+
     a.add_done_callback(copy)
