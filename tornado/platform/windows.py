@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 # NOTE: win32 support is currently experimental, and not recommended
 # for production use.
 

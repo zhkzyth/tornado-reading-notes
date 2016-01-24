@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 """``tornado.gen`` is a generator-based interface to make it easier to
 work in an asynchronous environment.  Code using the ``gen`` module
 is technically asynchronous, but it is written as a single generator
@@ -91,6 +94,7 @@ import types
 from tornado.concurrent import Future, TracebackFuture
 from tornado.ioloop import IOLoop
 from tornado.stack_context import ExceptionStackContext, wrap
+from tornado.log import gen_log
 
 
 class KeyReuseError(Exception):
@@ -537,7 +541,6 @@ class Runner(object):
         if self.running or self.finished:
             return
 
-        # TODO 了解下yield point
         try:
             self.running = True
 
@@ -584,9 +587,11 @@ class Runner(object):
                 if isinstance(yielded, (list, dict)):
                     yielded = Multi(yielded)
                 elif isinstance(yielded, Future):
+                    gen_log.warning("wrap a future to yieldFuture type")
                     yielded = YieldFuture(yielded) # 关键点！
 
                 if isinstance(yielded, YieldPoint):
+                    gen_log.warning("we get a yield of type:yield_point")
                     self.yield_point = yielded
                     try:
                         self.yield_point.start(self)

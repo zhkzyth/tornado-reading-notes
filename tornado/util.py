@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 """Miscellaneous utility functions and classes.
 
 This module is used internally by Tornado.  It is not necessarily expected

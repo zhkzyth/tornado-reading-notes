@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 """Bridges between the `asyncio` module and Tornado IOLoop.
 
 This is a work in progress and interfaces are subject to change.

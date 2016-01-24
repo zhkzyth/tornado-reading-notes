@@ -1,18 +1,5 @@
 #!/usr/bin/env python
-#
-# Copyright 2009 Facebook
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# encoding: utf-8
 
 """``tornado.web`` provides a simple web framework with asynchronous
 features that allow it to scale to large numbers of open connections,
@@ -1383,7 +1370,11 @@ def asynchronous(method):
         self._auto_finish = False
         with stack_context.ExceptionStackContext(
                 self._stack_context_handle_exception):
+
             result = method(self, *args, **kwargs)
+
+            gen_log.warning(result)
+
             if isinstance(result, Future):
                 # If @asynchronous is used with @gen.coroutine, (but
                 # not @gen.engine), we can automatically finish the
@@ -1402,7 +1393,9 @@ def asynchronous(method):
                 # exception handler (resulting in exceptions being
                 # logged twice).
                 return None
+
             return result
+
     return wrapper
 
 

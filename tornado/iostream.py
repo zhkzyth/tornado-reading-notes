@@ -1,18 +1,5 @@
 #!/usr/bin/env python
-#
-# Copyright 2009 Facebook
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# encoding: utf-8
 
 """Utility classes to write to and read from non-blocking files and sockets.
 
@@ -347,6 +334,7 @@ class BaseIOStream(object):
             raise
 
     def _run_callback(self, callback, *args):
+
         def wrapper():
             self._pending_callbacks -= 1
             try:
@@ -363,6 +351,7 @@ class BaseIOStream(object):
                 # can see it and log the error
                 raise
             self._maybe_add_error_listener()
+
         # We schedule callbacks to be run on the next IOLoop iteration
         # rather than running them directly for several reasons:
         # * Prevents unbounded stack growth when a callback calls an
@@ -546,7 +535,7 @@ class BaseIOStream(object):
                     # returning the number of bytes it was able to
                     # process.  Therefore we must not call socket.send
                     # with more than 128KB at a time.
-                    _merge_prefix(self._write_buffer, 128 * 1024)
+                    _merge_prefix(self._write_buffer, 128 * 1024) # 一次最多写128KB的数据出去
                 num_bytes = self.write_to_fd(self._write_buffer[0])
                 if num_bytes == 0:
                     # With OpenSSL, if we couldn't write the entire buffer,
@@ -575,6 +564,8 @@ class BaseIOStream(object):
                                         self.fileno(), e)
                     self.close(exc_info=True)
                     return
+        # 被ioloop对应的socket写事件唤醒后，就在这里处理写事件的回调
+        # 比如，写完连接的数据后，就调用self.on_connect了
         if not self._write_buffer and self._write_callback:
             callback = self._write_callback
             self._write_callback = None
@@ -598,6 +589,7 @@ class BaseIOStream(object):
             else:
                 self._add_io_state(ioloop.IOLoop.READ)
 
+    # IOStream这里通过把对外的网络请求socket读写事件放到ioloop里面，达到异步的效果
     def _add_io_state(self, state):
         """Adds `state` (IOLoop.{READ,WRITE} flags) to our event handler.
 
@@ -730,6 +722,7 @@ class IOStream(BaseIOStream):
         connected works on some platforms but is non-portable.
         """
         self._connecting = True
+
         try:
             self.socket.connect(address)
         except socket.error as e:

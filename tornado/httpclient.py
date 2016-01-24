@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 """Blocking and non-blocking HTTP client interfaces.
 
 This module defines a common interface shared by two implementations,
@@ -38,6 +41,7 @@ from tornado.escape import utf8
 from tornado import httputil, stack_context
 from tornado.ioloop import IOLoop
 from tornado.util import Configurable
+from tornado.log import gen_log
 
 
 class HTTPClient(object):
@@ -203,7 +207,9 @@ class AsyncHTTPClient(Configurable):
                 future.set_exception(response.error)
             else:
                 future.set_result(response)
+
         self.fetch_impl(request, handle_response)
+
         return future
 
     def fetch_impl(self, request, callback):
@@ -229,6 +235,8 @@ class AsyncHTTPClient(Configurable):
 
            AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
         """
+        gen_log.warning("opps, http client use class curl_httpclient ones")
+        # print("opps, http client use class curl_httpclient ones")
         super(AsyncHTTPClient, cls).configure(impl, **kwargs)
 
 

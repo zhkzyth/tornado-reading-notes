@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# encoding: utf-8
+
 from __future__ import absolute_import, division, print_function, with_statement
 
 from tornado.escape import utf8, _unicode, native_str
@@ -90,6 +92,7 @@ class SimpleAsyncHTTPClient(AsyncHTTPClient):
             self.resolver.close()
 
     def fetch_impl(self, request, callback):
+        gen_log.warning("now we use the simple http client one")
         key = object()
         self.queue.append((key, request, callback))
         if not len(self.active) < self.max_clients:
@@ -191,12 +194,16 @@ class _HTTPConnection(object):
                 # so restrict to ipv4 by default.
                 af = socket.AF_INET
 
+            # 支持request的timeout
             timeout = min(self.request.connect_timeout, self.request.request_timeout)
             if timeout:
                 self._timeout = self.io_loop.add_timeout(
                     self.start_time + timeout,
                     stack_context.wrap(self._on_timeout))
-            self.resolver.resolve(host, port, af, callback=self._on_resolve) # 关键点！！
+
+            # dns解析模块，解析ip地址
+            # Tornado 本身提供两个dns解析库，一个是基于多线程的，一个就是直接同步的blocking版本
+            self.resolver.resolve(host, port, af, callback=self._on_resolve)
 
     def _on_resolve(self, addrinfo):
         if self.final_callback is None:

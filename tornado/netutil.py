@@ -1,18 +1,5 @@
 #!/usr/bin/env python
-#
-# Copyright 2011 Facebook
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# encoding: utf-8
 
 """Miscellaneous network utility code."""
 
@@ -28,6 +15,7 @@ from tornado.concurrent import dummy_executor, run_on_executor
 from tornado.ioloop import IOLoop
 from tornado.platform.auto import set_close_exec
 from tornado.util import Configurable
+from tornado.log import gen_log
 
 if hasattr(ssl, 'match_hostname') and hasattr(ssl, 'CertificateError'):  # python 3.2+
     ssl_match_hostname = ssl.match_hostname
@@ -311,6 +299,7 @@ class ThreadedResolver(ExecutorResolver):
             # was when we created the pool then delete it.
             cls._threadpool = None
         if cls._threadpool is None:
+            gen_log.warning("so i have been configured.A ThreadedResolver")
             from concurrent.futures import ThreadPoolExecutor
             cls._threadpool = ThreadPoolExecutor(num_threads)
             cls._threadpool_pid = pid
